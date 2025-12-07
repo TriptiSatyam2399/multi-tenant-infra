@@ -46,7 +46,7 @@ resource "kubernetes_service" "app" {
 
   spec {
     selector = {
-      app = kubernetes_deployment.app.metadata[0].labels.app
+      app = "${var.tenant_name}-app"
     }
 
     port {
@@ -58,10 +58,12 @@ resource "kubernetes_service" "app" {
   }
 }
 
-resource "kubernetes_ingress" "app_ingress" {
+
+resource "kubernetes_ingress_v1" "app_ingress" {
   metadata {
     name      = "${var.tenant_name}-ingress"
     namespace = kubernetes_namespace.tenant_ns.metadata[0].name
+
     annotations = {
       "nginx.ingress.kubernetes.io/ssl-redirect" = "false"
     }
@@ -70,14 +72,24 @@ resource "kubernetes_ingress" "app_ingress" {
   spec {
     rule {
       host = "${var.tenant_name}.${var.domain}"
+
       http {
         path {
+          path = "/"
+          path_type = "Prefix"
+
           backend {
-            service_name = kubernetes_service.app.metadata[0].name
-            service_port = 80
+            service {
+              name = "${var.tenant_name}-svc"
+              port {
+                number = 80
+              }
+            }
           }
         }
       }
     }
   }
 }
+
+
